@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Assignment Writeup</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #555;
+        }
+        pre {
+            background: #333;
+            color: #fff;
+            padding: 15px;
+            text-align: left;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Prediction Assignment Writeup</h1>
+        <h2>Nama: Fadlurrahman Irsyad</h2>
+        <h3>Kode dari file <i>prediction.Rmd</i>:</h3>
+        <pre><code>
+```{r}
+# Load required libraries
+library(caret)
+library(randomForest)
+
+# Load the datasets
+train_data <- read.csv("pml-training.csv", na.strings = c("", "NA"))
+test_data <- read.csv("pml-testing.csv", na.strings = c("", "NA"))
+
+# Remove irrelevant columns
+irrelevant_cols <- c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", 
+                     "cvtd_timestamp", "new_window", "num_window")
+train_data <- train_data[, !(names(train_data) %in% irrelevant_cols)]
+test_data <- test_data[, !(names(test_data) %in% irrelevant_cols)]
+
+# Remove columns with more than 50% missing values
+missing_threshold <- 0.5
+missing_cols <- colSums(is.na(train_data)) / nrow(train_data) > missing_threshold
+train_data <- train_data[, !missing_cols]
+test_data <- test_data[, colnames(test_data) %in% colnames(train_data)]
+
+# Convert classe to factor
+train_data$classe <- as.factor(train_data$classe)
+
+# Split into training and testing sets
+set.seed(42)
+trainIndex <- createDataPartition(train_data$classe, p = 0.8, list = FALSE)
+training <- train_data[trainIndex, ]
+testing <- train_data[-trainIndex, ]
+
+# Train Random Forest model
+set.seed(42)
+rf_model <- randomForest(classe ~ ., data = training, ntree = 100)
+
+# Cross-validation
+cv_model <- train(classe ~ ., data = training, method = "rf", 
+                  trControl = trainControl(method = "cv", number = 5))
+cv_accuracy <- cv_model$results$Accuracy[1]
+
+# Evaluate on test set
+test_pred <- predict(rf_model, testing)
+test_accuracy <- confusionMatrix(test_pred, testing$classe)$overall["Accuracy"]
+
+# Predict on new test data
+test_predictions <- predict(rf_model, test_data)
+
+# Print results
+list(cross_validation_accuracy = cv_accuracy, test_accuracy = test_accuracy, predictions = test_predictions)
+```
+        </code></pre>
+    </div>
+</body>
+
+</html>
